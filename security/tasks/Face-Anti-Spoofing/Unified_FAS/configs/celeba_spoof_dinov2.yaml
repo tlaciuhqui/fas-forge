@@ -1,0 +1,95 @@
+seed: 1234
+torch_home: /path/to/torch
+num_workers: 8
+
+dataset:
+  name: CelebASpoofDataset
+  CelebASpoofDataset:
+    data_root: /path/to/CelebA_Spoof
+    metainfo_dir: metainfo
+    train_label_json: train_label.json
+    test_label_json: test_label.json
+    split_data:
+      val: train
+    val_from_train_ratio: 0.05
+    split_seed: 1234
+    use_LMDB: False
+    img_mode: rgb            # DINOv2 requires 3-channel RGB input
+    aux_map: null
+    aux_map_size: 32
+    crop_face: bb
+    bb_scale: 224
+    return_path: True
+
+transform:
+  image_size: 224            # must be divisible by the ViT patch size (14)
+  mean: [0.485, 0.456, 0.406]   # DINOv2 / ImageNet normalization
+  std: [0.229, 0.224, 0.225]
+  num_segments: 1
+
+model:
+  name: UnifiedFAS
+  resume:
+  params:
+    in_ch: 3                 # rgb input
+    mid_ch: 384              # ignored when backbone == dinov2_reg
+    num_classes: 2
+    norm: adap
+    attention: 1layer
+    aux_head: False
+    aux_out_ch: 1
+    model_init: kaiming
+    backbone: dinov2_reg
+    backbone_model: vit_small_patch14_reg4_dinov2
+    backbone_pretrained: True
+    backbone_freeze: True
+    backbone_img_size: 224
+
+loss:
+  name: CrossEntropyLoss
+  params:
+    reduction: mean
+
+aux_loss:
+  enabled: False
+  name: MSELoss
+  weight: 0.1
+  params:
+    reduction: mean
+
+optimizer:
+  name: Adam
+  params:
+    lr: 0.0001
+    weight_decay: 0.00001
+
+scheduler:
+  name: CosineLRScheduler
+  params:
+    t_initial: 50
+    warmup_t: 5
+    warmup_lr_init: 0.000001
+    lr_min: 0.0
+
+train:
+  epochs: 50
+  batch_size: 32
+  print_interval: 10
+
+val:
+  batch_size: 64
+
+test:
+  batch_size: 64
+  record_results: True
+
+wandb:
+  project: UnifiedFAS
+  group: celeba_spoof_dinov2
+  mode: offline
+  job_type:
+  id:
+  resume:
+  save_code: True
+  name:
+  notes:
