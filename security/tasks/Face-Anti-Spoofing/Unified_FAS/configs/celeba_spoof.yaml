@@ -1,0 +1,91 @@
+seed: 1234
+torch_home: /path/to/torch
+num_workers: 8
+
+dataset:
+  name: CelebASpoofDataset
+  CelebASpoofDataset:
+    data_root: /path/to/CelebA_Spoof
+    metainfo_dir: metainfo
+    train_label_json: train_label.json
+    test_label_json: test_label.json
+    # CelebA-Spoof has no official validation split: build it from train.
+    split_data:
+      val: train
+    val_from_train_ratio: 0.05
+    split_seed: 1234
+    use_LMDB: False
+    img_mode: rgb            # 'rgb' (3ch) or 'rgb_hsv' (6ch)
+    aux_map: null            # CelebA-Spoof has no depth/reflection GT
+    aux_map_size: 32
+    crop_face: bb            # use the official {image}_BB.txt files
+    bb_scale: 224
+    return_path: True
+
+transform:
+  image_size: 256
+  mean: [0.5, 0.5, 0.5]
+  std: [0.5, 0.5, 0.5]
+  num_segments: 1
+
+model:
+  name: UnifiedFAS
+  resume:
+  params:
+    in_ch: 3                # matches img_mode: rgb
+    mid_ch: 384
+    num_classes: 2
+    norm: adap              # 'bn', 'in' or 'adap' (generalized from ANRL)
+    attention: 1layer
+    aux_head: False
+    aux_out_ch: 1
+    model_init: kaiming
+
+loss:
+  name: CrossEntropyLoss
+  params:
+    reduction: mean
+
+aux_loss:
+  enabled: False            # enable together with model.params.aux_head
+  name: MSELoss
+  weight: 0.1
+  params:
+    reduction: mean
+
+optimizer:
+  name: Adam
+  params:
+    lr: 0.0001
+    weight_decay: 0.00001
+
+scheduler:
+  name: CosineLRScheduler
+  params:
+    t_initial: 50
+    warmup_t: 5
+    warmup_lr_init: 0.000001
+    lr_min: 0.0
+
+train:
+  epochs: 50
+  batch_size: 64
+  print_interval: 10
+
+val:
+  batch_size: 64
+
+test:
+  batch_size: 64
+  record_results: True
+
+wandb:
+  project: UnifiedFAS
+  group: celeba_spoof
+  mode: offline
+  job_type:
+  id:
+  resume:
+  save_code: True
+  name:
+  notes:
